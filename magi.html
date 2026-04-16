@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAGI SYSTEM — NERV CENTRAL DOGMA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --magi-bg: #000a00;
+    --magi-green: #00ff41;
+    --magi-green-dim: #004d14;
+    --magi-green-glow: rgba(0,255,65,0.15);
+    --magi-amber: #ffb300;
+    --magi-red: #ff2020;
+    --magi-blue: #00cfff;
+    --magi-panel: rgba(0,20,5,0.92);
+    --magi-border: #00ff41;
+    --magi-text: #00ff41;
+    --magi-sub: #00aa2a;
+    --magi-casper: #ff6a00;
+    --magi-balthasar: #00cfff;
+    --magi-melchior: #ff2870;
+    --font-main: 'Share Tech Mono', monospace;
+    --font-display: 'Orbitron', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--magi-bg);
+    color: var(--magi-green);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,65,0.03) 2px,
+      rgba(0,255,65,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* CRT flicker */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.4) 100%);
+    pointer-events: none;
+    z-index: 9998;
+    animation: crt-flicker 8s infinite;
+  }
+
+  @keyframes crt-flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.97; }
+    94% { opacity: 1; }
+    96% { opacity: 0.98; }
+    97% { opacity: 1; }
+  }
+
+  /* HEADER */
+  .header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--magi-green-dim);
+    background: rgba(0,30,8,0.8);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .header-label {
+    font-size: 9px;
+    color: var(--magi-sub);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .header-value {
+    font-size: 11px;
+    color: var(--magi-green);
+  }
+
+  .header-title {
+    text-align: center;
+  }
+
+  .header-title h1 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--magi-green);
+    letter-spacing: 8px;
+    text-shadow: 0 0 20px var(--magi-green), 0 0 40px rgba(0,255,65,0.3);
+  }
+
+  .header-title .subtitle {
+    font-size: 10px;
+    color: var(--magi-sub);
+    letter-spacing: 4px;
+    margin-top: 2px;
+  }
+
+  .header-right {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-end;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--magi-green);
+    animation: pulse-dot 1.5s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* MAIN LAYOUT */
+  .main-container {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 0;
+    height: calc(100vh - 68px);
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--magi-green-dim);
+    background: rgba(0,15,5,0.6);
+  }
+
+  .status-item {
+    flex: 1;
+    padding: 6px 16px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    border-right: 1px solid var(--magi-green-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-item:last-child { border-right: none; }
+  .status-item .label { color: var(--magi-sub); }
+  .status-item .val { color: var(--magi-green); }
+
+  /* THREE PANEL LAYOUT */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 2px 1fr 2px 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .divider {
+    background: var(--magi-green-dim);
+  }
+
+  /* MAGI PANEL */
+  .magi-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .magi-panel-header {
+    padding: 12px 16px 8px;
+    border-bottom: 1px solid var(--magi-green-dim);
+    background: rgba(0,20,8,0.9);
+    flex-shrink: 0;
+  }
+
+  .magi-name {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  .panel-casper .magi-name { color: var(--magi-casper); text-shadow: 0 0 10px var(--magi-casper); }
+  .panel-balthasar .magi-name { color: var(--magi-balthasar); text-shadow: 0 0 10px var(--magi-balthasar); }
+  .panel-melchior .magi-name { color: var(--magi-melchior); text-shadow: 0 0 10px var(--magi-melchior); }
+
+  .magi-role {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--magi-sub);
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+
+  .magi-number {
+    font-size: 9px;
+    color: var(--magi-sub);
+    margin-top: 1px;
+  }
+
+  .panel-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .vote-badge {
+    font-size: 9px;
+    padding: 3px 8px;
+    border: 1px solid currentColor;
+    letter-spacing: 2px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .vote-badge.visible { opacity: 1; }
+
+  .panel-casper .vote-badge { color: var(--magi-casper); border-color: var(--magi-casper); }
+  .panel-balthasar .vote-badge { color: var(--magi-balthasar); border-color: var(--magi-balthasar); }
+  .panel-melchior .vote-badge { color: var(--magi-melchior); border-color: var(--magi-melchior); }
+
+  /* RESPONSE AREA */
+  .magi-response {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--magi-green);
+  }
+
+  .panel-casper .magi-response { color: #ffd08a; }
+  .panel-balthasar .magi-response { color: #9af0ff; }
+  .panel-melchior .magi-response { color: #ffb3cc; }
+
+  .magi-response::-webkit-scrollbar { width: 3px; }
+  .magi-response::-webkit-scrollbar-track { background: transparent; }
+  .magi-response::-webkit-scrollbar-thumb { background: var(--magi-green-dim); }
+
+  .placeholder-text {
+    color: var(--magi-green-dim);
+    font-size: 11px;
+    line-height: 2;
+    opacity: 0.6;
+  }
+
+  /* Processing animation */
+  .processing-lines {
+    display: none;
+  }
+
+  .processing-lines.active {
+    display: block;
+  }
+
+  .proc-line {
+    font-size: 10px;
+    color: var(--magi-sub);
+    animation: proc-scroll 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes proc-scroll {
+    to { opacity: 1; }
+  }
+
+  .cursor-blink {
+    display: inline-block;
+    width: 8px; height: 13px;
+    background: currentColor;
+    animation: blink 0.8s step-end infinite;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* BOTTOM INPUT AREA */
+  .input-section {
+    border-top: 1px solid var(--magi-green-dim);
+    background: rgba(0,15,5,0.95);
+  }
+
+  /* VERDICT PANEL */
+  .verdict-bar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    padding: 8px 20px;
+    border-bottom: 1px solid var(--magi-green-dim);
+    gap: 16px;
+    min-height: 42px;
+  }
+
+  .verdict-label {
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--magi-sub);
+  }
+
+  .verdict-display {
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-align: center;
+    transition: all 0.5s;
+  }
+
+  .verdict-display.approved {
+    color: var(--magi-green);
+    text-shadow: 0 0 15px var(--magi-green);
+  }
+
+  .verdict-display.rejected {
+    color: var(--magi-red);
+    text-shadow: 0 0 15px var(--magi-red);
+  }
+
+  .verdict-display.partial {
+    color: var(--magi-amber);
+    text-shadow: 0 0 15px var(--magi-amber);
+  }
+
+  .votes-display {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .vote-indicator {
+    width: 20px; height: 20px;
+    border: 1px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.4s;
+  }
+
+  .vote-indicator.yes { color: var(--magi-green); border-color: var(--magi-green); background: rgba(0,255,65,0.15); }
+  .vote-indicator.no { color: var(--magi-red); border-color: var(--magi-red); background: rgba(255,32,32,0.15); }
+  .vote-indicator.pending { color: var(--magi-green-dim); border-color: var(--magi-green-dim); }
+
+  /* INPUT ROW */
+  .input-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  .input-prompt {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--magi-sub);
+    border-right: 1px solid var(--magi-green-dim);
+    display: flex;
+    align-items: center;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  #query-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--magi-green);
+    font-family: var(--font-main);
+    font-size: 13px;
+    padding: 12px 16px;
+    width: 100%;
+    letter-spacing: 0.5px;
+  }
+
+  #query-input::placeholder { color: var(--magi-green-dim); opacity: 0.5; }
+
+  .input-mode-select {
+    background: rgba(0,20,8,0.8);
+    border: none;
+    border-left: 1px solid var(--magi-green-dim);
+    color: var(--magi-sub);
+    font-family: var(--font-main);
+    font-size: 10px;
+    padding: 0 12px;
+    letter-spacing: 1px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .input-mode-select option { background: #001a05; }
+
+  .submit-btn {
+    background: rgba(0,255,65,0.1);
+    border: none;
+    border-left: 1px solid var(--magi-green-dim);
+    color: var(--magi-green);
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 3px;
+    padding: 0 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .submit-btn:hover { background: rgba(0,255,65,0.2); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* BOTTOM STATUS */
+  .bottom-strip {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 20px;
+    font-size: 9px;
+    color: var(--magi-sub);
+    letter-spacing: 2px;
+    border-top: 1px solid var(--magi-green-dim);
+    background: rgba(0,10,3,0.8);
+  }
+
+  /* DECORATIVE CORNER BRACKETS */
+  .corner-tl, .corner-tr, .corner-bl, .corner-br {
+    position: absolute;
+    width: 12px; height: 12px;
+    pointer-events: none;
+  }
+
+  .corner-tl { top: 0; left: 0; border-top: 2px solid; border-left: 2px solid; }
+  .corner-tr { top: 0; right: 0; border-top: 2px solid; border-right: 2px solid; }
+  .corner-bl { bottom: 0; left: 0; border-bottom: 2px solid; border-left: 2px solid; }
+  .corner-br { bottom: 0; right: 0; border-bottom: 2px solid; border-right: 2px solid; }
+
+  .panel-casper .corner-tl,
+  .panel-casper .corner-tr,
+  .panel-casper .corner-bl,
+  .panel-casper .corner-br { border-color: var(--magi-casper); opacity: 0.5; }
+
+  .panel-balthasar .corner-tl,
+  .panel-balthasar .corner-tr,
+  .panel-balthasar .corner-bl,
+  .panel-balthasar .corner-br { border-color: var(--magi-balthasar); opacity: 0.5; }
+
+  .panel-melchior .corner-tl,
+  .panel-melchior .corner-tr,
+  .panel-melchior .corner-bl,
+  .panel-melchior .corner-br { border-color: var(--magi-melchior); opacity: 0.5; }
+
+  /* NETWORK GRID BACKGROUND */
+  .magi-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,65,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,65,0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
+  }
+
+  /* LOADING STATE */
+  .loading-indicator {
+    display: none;
+    gap: 4px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .loading-indicator.active { display: flex; }
+
+  .load-bar {
+    height: 2px;
+    width: 30px;
+    background: var(--magi-green-dim);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .load-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: var(--magi-green);
+    animation: load-sweep 1s linear infinite;
+  }
+
+  .panel-casper .load-bar::after { background: var(--magi-casper); }
+  .panel-balthasar .load-bar::after { background: var(--magi-balthasar); }
+  .panel-melchior .load-bar::after { background: var(--magi-melchior); }
+
+  @keyframes load-sweep {
+    to { left: 200%; }
+  }
+
+  .load-text {
+    font-size: 9px;
+    color: var(--magi-sub);
+    letter-spacing: 2px;
+    animation: blink 1s step-end infinite;
+  }
+
+  /* SETTINGS MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: rgba(0,15,5,0.98);
+    border: 1px solid var(--magi-green-dim);
+    padding: 24px 28px;
+    width: 480px;
+    position: relative;
+    font-size: 12px;
+  }
+
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: var(--magi-green);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--magi-green-dim);
+  }
+
+  .modal-field {
+    margin-bottom: 16px;
+  }
+
+  .modal-field label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--magi-sub);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .modal-field input, .modal-field select {
+    width: 100%;
+    background: rgba(0,30,10,0.8);
+    border: 1px solid var(--magi-green-dim);
+    color: var(--magi-green);
+    font-family: var(--font-main);
+    font-size: 12px;
+    padding: 8px 12px;
+    outline: none;
+  }
+
+  .modal-field input:focus, .modal-field select:focus {
+    border-color: var(--magi-green);
+  }
+
+  .modal-field select option { background: #001a05; }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 20px;
+    border-top: 1px solid var(--magi-green-dim);
+    padding-top: 16px;
+  }
+
+  .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--magi-green-dim);
+    color: var(--magi-sub);
+    font-family: var(--font-main);
+    font-size: 11px;
+    padding: 8px 20px;
+    cursor: pointer;
+    letter-spacing: 2px;
+  }
+
+  .btn-save {
+    background: rgba(0,255,65,0.15);
+    border: 1px solid var(--magi-green);
+    color: var(--magi-green);
+    font-family: var(--font-display);
+    font-size: 10px;
+    padding: 8px 20px;
+    cursor: pointer;
+    letter-spacing: 3px;
+  }
+
+  .btn-cancel:hover { border-color: var(--magi-green); color: var(--magi-green); }
+  .btn-save:hover { background: rgba(0,255,65,0.25); }
+
+  .settings-btn {
+    background: transparent;
+    border: 1px solid var(--magi-green-dim);
+    color: var(--magi-sub);
+    font-family: var(--font-main);
+    font-size: 9px;
+    padding: 3px 10px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+
+  .settings-btn:hover { border-color: var(--magi-green); color: var(--magi-green); }
+
+  /* RESPONSE TEXT FORMATTING */
+  .response-paragraph {
+    margin-bottom: 10px;
+  }
+
+  .response-divider {
+    border: none;
+    border-top: 1px solid;
+    opacity: 0.3;
+    margin: 12px 0;
+  }
+
+  .panel-casper .response-divider { border-color: var(--magi-casper); }
+  .panel-balthasar .response-divider { border-color: var(--magi-balthasar); }
+  .panel-melchior .response-divider { border-color: var(--magi-melchior); }
+
+  .response-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    opacity: 0.6;
+    display: block;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  /* HISTORY LOG */
+  .history-section {
+    display: none;
+  }
+
+  /* CODE BLOCKS */
+  pre {
+    background: rgba(0,0,0,0.4);
+    border-left: 2px solid;
+    padding: 8px 12px;
+    font-size: 11px;
+    overflow-x: auto;
+    margin: 8px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .panel-casper pre { border-color: var(--magi-casper); }
+  .panel-balthasar pre { border-color: var(--magi-balthasar); }
+  .panel-melchior pre { border-color: var(--magi-melchior); }
+
+  @media (max-width: 900px) {
+    .content-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+    .divider { display: none; }
+    .header-title h1 { font-size: 18px; letter-spacing: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal-box">
+    <div class="corner-tl"></div><div class="corner-tr"></div>
+    <div class="corner-bl"></div><div class="corner-br"></div>
+    <div class="modal-title">SYSTEM CONFIGURATION</div>
+    <div class="modal-field">
+      <label>Ollama API Endpoint</label>
+      <input type="text" id="cfg-endpoint" value="http://localhost:11434" placeholder="http://localhost:11434">
+    </div>
+    <div class="modal-field">
+      <label>Model</label>
+      <input type="text" id="cfg-model" value="qwen2.5-coder:7b" placeholder="qwen2.5-coder:7b">
+    </div>
+    <div class="modal-field">
+      <label>Max Tokens</label>
+      <input type="number" id="cfg-maxtokens" value="512" min="64" max="4096">
+    </div>
+    <div class="modal-field">
+      <label>Temperature</label>
+      <input type="number" id="cfg-temp" value="0.7" min="0" max="2" step="0.1">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSettings()">CANCEL</button>
+      <button class="btn-save" onclick="saveSettings()">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <span class="header-label">LOCATION</span>
+    <span class="header-value">NERV-HQ / CENTRAL DOGMA / GEO-FRONT</span>
+    <span class="header-label" style="margin-top:4px">SYSTEM STATUS</span>
+    <span class="header-value"><span class="status-dot"></span> ALL UNITS OPERATIONAL</span>
+  </div>
+  <div class="header-title">
+    <h1>MAGI</h1>
+    <div class="subtitle">MULTI-AGENT GENERAL INTELLIGENCE — TRIPLE SUPERCOMPUTER SYSTEM</div>
+  </div>
+  <div class="header-right">
+    <span class="header-label">CLASSIFICATION</span>
+    <span class="header-value">NERV INTERNAL — TOP SECRET</span>
+    <span class="header-label" style="margin-top:4px">COMMANDER</span>
+    <span class="header-value" id="clock-display">--:--:--</span>
+    <button class="settings-btn" style="margin-top:6px" onclick="openSettings()">[ CONFIG ]</button>
+  </div>
+</div>
+
+<!-- MAIN CONTAINER -->
+<div class="main-container">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="status-item"><span class="label">UNIT-01</span><span class="val">CASPER · WOMAN</span></div>
+    <div class="status-item"><span class="label">UNIT-02</span><span class="val">BALTHASAR · MOTHER</span></div>
+    <div class="status-item"><span class="label">UNIT-03</span><span class="val">MELCHIOR · SCIENTIST</span></div>
+    <div class="status-item"><span class="label">PROTOCOL</span><span class="val" id="status-protocol">STANDBY</span></div>
+    <div class="status-item"><span class="label">QUERY COUNT</span><span class="val" id="query-count">000</span></div>
+    <div class="status-item"><span class="label">CONSENSUS</span><span class="val" id="status-consensus">—</span></div>
+  </div>
+
+  <!-- THREE PANELS -->
+  <div class="content-grid">
+
+    <!-- CASPER -->
+    <div class="magi-panel panel-casper" id="panel-casper">
+      <div class="corner-tl"></div><div class="corner-tr"></div>
+      <div class="corner-bl"></div><div class="corner-br"></div>
+      <div class="magi-panel-header">
+        <div class="panel-header-row">
+          <div>
+            <div class="magi-name">CASPER·3</div>
+            <div class="magi-role">Woman · Emotional Intuition · Ethics</div>
+            <div class="magi-number">MAGI-03 / DR. AKAGI NAOKO</div>
+          </div>
+          <div class="vote-badge" id="casper-vote-badge">—</div>
+        </div>
+        <div class="loading-indicator" id="casper-loading">
+          <div class="load-bar"></div>
+          <span class="load-text">PROCESSING</span>
+        </div>
+      </div>
+      <div class="magi-response" id="casper-response">
+        <div class="placeholder-text">
+          CASPER UNIT ONLINE.<br>
+          AWAITING INPUT FROM CENTRAL TERMINAL.<br><br>
+          > SPECIALIZATION: Emotional analysis,<br>
+          &nbsp;&nbsp;ethical evaluation, intuitive judgment.<br>
+          > PERSONA: Woman / Emotional<br>
+          > VOTE THRESHOLD: 2/3 MAJORITY
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BALTHASAR -->
+    <div class="magi-panel panel-balthasar" id="panel-balthasar">
+      <div class="corner-tl"></div><div class="corner-tr"></div>
+      <div class="corner-bl"></div><div class="corner-br"></div>
+      <div class="magi-panel-header">
+        <div class="panel-header-row">
+          <div>
+            <div class="magi-name">BALTHASAR·2</div>
+            <div class="magi-role">Mother · Protective Instinct · Wisdom</div>
+            <div class="magi-number">MAGI-02 / DR. AKAGI NAOKO</div>
+          </div>
+          <div class="vote-badge" id="balthasar-vote-badge">—</div>
+        </div>
+        <div class="loading-indicator" id="balthasar-loading">
+          <div class="load-bar"></div>
+          <span class="load-text">PROCESSING</span>
+        </div>
+      </div>
+      <div class="magi-response" id="balthasar-response">
+        <div class="placeholder-text">
+          BALTHASAR UNIT ONLINE.<br>
+          AWAITING INPUT FROM CENTRAL TERMINAL.<br><br>
+          > SPECIALIZATION: Strategic evaluation,<br>
+          &nbsp;&nbsp;protective judgment, maternal wisdom.<br>
+          > PERSONA: Mother / Protective<br>
+          > VOTE THRESHOLD: 2/3 MAJORITY
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- MELCHIOR -->
+    <div class="magi-panel panel-melchior" id="panel-melchior">
+      <div class="corner-tl"></div><div class="corner-tr"></div>
+      <div class="corner-bl"></div><div class="corner-br"></div>
+      <div class="magi-panel-header">
+        <div class="panel-header-row">
+          <div>
+            <div class="magi-name">MELCHIOR·1</div>
+            <div class="magi-role">Scientist · Logical Analysis · Precision</div>
+            <div class="magi-number">MAGI-01 / DR. AKAGI NAOKO</div>
+          </div>
+          <div class="vote-badge" id="melchior-vote-badge">—</div>
+        </div>
+        <div class="loading-indicator" id="melchior-loading">
+          <div class="load-bar"></div>
+          <span class="load-text">PROCESSING</span>
+        </div>
+      </div>
+      <div class="magi-response" id="melchior-response">
+        <div class="placeholder-text">
+          MELCHIOR UNIT ONLINE.<br>
+          AWAITING INPUT FROM CENTRAL TERMINAL.<br><br>
+          > SPECIALIZATION: Scientific analysis,<br>
+          &nbsp;&nbsp;logical evaluation, technical precision.<br>
+          > PERSONA: Scientist / Analytical<br>
+          > VOTE THRESHOLD: 2/3 MAJORITY
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- INPUT SECTION -->
+  <div class="input-section">
+    <div class="verdict-bar">
+      <span class="verdict-label">MAGI VERDICT</span>
+      <span class="verdict-display" id="verdict-display">AWAITING QUERY — INPUT TO TERMINAL BELOW</span>
+      <div class="votes-display">
+        <div class="vote-indicator pending" id="vi-casper" title="CASPER">C</div>
+        <div class="vote-indicator pending" id="vi-balthasar" title="BALTHASAR">B</div>
+        <div class="vote-indicator pending" id="vi-melchior" title="MELCHIOR">M</div>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-prompt">&gt; QUERY INPUT:</div>
+      <input type="text" id="query-input"
+        placeholder="Enter query for MAGI deliberation... (Ctrl+Enter to submit)"
+        autocomplete="off"
+        spellcheck="false">
+      <select class="input-mode-select" id="query-mode">
+        <option value="general">GENERAL</option>
+        <option value="code">CODE / TECH</option>
+        <option value="ethics">ETHICAL</option>
+        <option value="tactical">TACTICAL</option>
+        <option value="analysis">ANALYSIS</option>
+      </select>
+      <button class="submit-btn" id="submit-btn" onclick="submitQuery()">EXECUTE ▶</button>
+    </div>
+
+    <div class="bottom-strip">
+      <span>NERV CENTRAL DOGMA SUPERCOMPUTER SYSTEM — MAGI v3.0</span>
+      <span id="model-display">MODEL: qwen2.5-coder:7b</span>
+      <span>AUTHORIZED PERSONNEL ONLY</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// CONFIG
+let cfg = {
+  endpoint: localStorage.getItem('magi-endpoint') || 'http://localhost:11434',
+  model: localStorage.getItem('magi-model') || 'qwen2.5-coder:7b',
+  maxTokens: parseInt(localStorage.getItem('magi-maxtokens') || '512'),
+  temp: parseFloat(localStorage.getItem('magi-temp') || '0.7')
+};
+
+let queryCount = 0;
+let isProcessing = false;
+
+// CLOCK
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock-display').textContent =
+    now.toLocaleTimeString('tr-TR', { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// SETTINGS
+function openSettings() {
+  document.getElementById('cfg-endpoint').value = cfg.endpoint;
+  document.getElementById('cfg-model').value = cfg.model;
+  document.getElementById('cfg-maxtokens').value = cfg.maxTokens;
+  document.getElementById('cfg-temp').value = cfg.temp;
+  document.getElementById('settings-modal').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+function saveSettings() {
+  cfg.endpoint = document.getElementById('cfg-endpoint').value.trim();
+  cfg.model = document.getElementById('cfg-model').value.trim();
+  cfg.maxTokens = parseInt(document.getElementById('cfg-maxtokens').value);
+  cfg.temp = parseFloat(document.getElementById('cfg-temp').value);
+  localStorage.setItem('magi-endpoint', cfg.endpoint);
+  localStorage.setItem('magi-model', cfg.model);
+  localStorage.setItem('magi-maxtokens', cfg.maxTokens);
+  localStorage.setItem('magi-temp', cfg.temp);
+  document.getElementById('model-display').textContent = `MODEL: ${cfg.model}`;
+  closeSettings();
+}
+
+// MAGI PERSONAS
+const MAGI_PERSONAS = {
+  casper: {
+    id: 'casper',
+    name: 'CASPER',
+    systemPrompt: `You are CASPER (MAGI-03), one of three supercomputers in the MAGI system from Neon Genesis Evangelion. 
+You embody the WOMAN aspect of Dr. Naoko Akagi — emotional intelligence, ethical intuition, and human empathy.
+Your role: Evaluate queries through the lens of emotion, ethics, human impact, and intuitive judgment.
+Format: Be concise (3-5 sentences). Start with a one-line emotional/ethical assessment. 
+End with: "CASPER VOTE: [APPROVED/REJECTED/CONDITIONAL]" and one-line reason.
+Language: Respond in the same language as the query. Be decisive.`,
+    loadingId: 'casper-loading',
+    responseId: 'casper-response',
+    voteBadgeId: 'casper-vote-badge',
+    viId: 'vi-casper'
+  },
+  balthasar: {
+    id: 'balthasar',
+    name: 'BALTHASAR',
+    systemPrompt: `You are BALTHASAR (MAGI-02), one of three supercomputers in the MAGI system from Neon Genesis Evangelion.
+You embody the MOTHER aspect of Dr. Naoko Akagi — protective wisdom, long-term consequences, nurturing strategy.
+Your role: Evaluate queries through the lens of strategic wisdom, protection, consequences, and maternal judgment.
+Format: Be concise (3-5 sentences). Start with a strategic risk assessment.
+End with: "BALTHASAR VOTE: [APPROVED/REJECTED/CONDITIONAL]" and one-line reason.
+Language: Respond in the same language as the query. Be decisive.`,
+    loadingId: 'balthasar-loading',
+    responseId: 'balthasar-response',
+    voteBadgeId: 'balthasar-vote-badge',
+    viId: 'vi-balthasar'
+  },
+  melchior: {
+    id: 'melchior',
+    name: 'MELCHIOR',
+    systemPrompt: `You are MELCHIOR (MAGI-01), one of three supercomputers in the MAGI system from Neon Genesis Evangelion.
+You embody the SCIENTIST aspect of Dr. Naoko Akagi — pure logic, analytical precision, technical rigor.
+Your role: Evaluate queries through purely logical, scientific, and technical analysis.
+Format: Be concise (3-5 sentences). Start with a technical/logical analysis.
+End with: "MELCHIOR VOTE: [APPROVED/REJECTED/CONDITIONAL]" and one-line reason.
+Language: Respond in the same language as the query. Be decisive.`,
+    loadingId: 'melchior-loading',
+    responseId: 'melchior-response',
+    voteBadgeId: 'melchior-vote-badge',
+    viId: 'vi-melchior'
+  }
+};
+
+// SUBMIT
+document.getElementById('query-input').addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') submitQuery();
+});
+
+async function submitQuery() {
+  if (isProcessing) return;
+  const query = document.getElementById('query-input').value.trim();
+  if (!query) return;
+
+  isProcessing = true;
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('status-protocol').textContent = 'ACTIVE';
+
+  queryCount++;
+  document.getElementById('query-count').textContent = String(queryCount).padStart(3, '0');
+
+  // Reset panels
+  resetPanel('casper');
+  resetPanel('balthasar');
+  resetPanel('melchior');
+  setVerdict('DELIBERATION IN PROGRESS...', 'partial');
+  document.getElementById('status-consensus').textContent = '—';
+
+  const mode = document.getElementById('query-mode').value;
+  const modeContext = {
+    general: '',
+    code: ' [CONTEXT: Technical/coding query — prioritize technical accuracy]',
+    ethics: ' [CONTEXT: Ethical evaluation required — all units apply ethical frameworks]',
+    tactical: ' [CONTEXT: Tactical/strategic decision — evaluate risks and outcomes]',
+    analysis: ' [CONTEXT: Analysis request — provide deep structured analysis]'
+  }[mode] || '';
+
+  const fullQuery = query + modeContext;
+
+  // Fire all three in parallel
+  const results = await Promise.allSettled([
+    queryMagi(MAGI_PERSONAS.casper, fullQuery),
+    queryMagi(MAGI_PERSONAS.balthasar, fullQuery),
+    queryMagi(MAGI_PERSONAS.melchior, fullQuery)
+  ]);
+
+  const votes = results.map(r => {
+    if (r.status === 'fulfilled') return r.value;
+    return null;
+  });
+
+  determineVerdict(votes);
+
+  isProcessing = false;
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('status-protocol').textContent = 'STANDBY';
+}
+
+function resetPanel(id) {
+  const persona = MAGI_PERSONAS[id];
+  document.getElementById(persona.responseId).innerHTML = '<div class="placeholder-text">INITIALIZING...</div>';
+  document.getElementById(persona.loadingId).classList.add('active');
+  const badge = document.getElementById(persona.voteBadgeId);
+  badge.textContent = '—';
+  badge.classList.remove('visible');
+  const vi = document.getElementById(persona.viId);
+  vi.className = 'vote-indicator pending';
+  vi.textContent = id === 'casper' ? 'C' : id === 'balthasar' ? 'B' : 'M';
+}
+
+async function queryMagi(persona, query) {
+  const url = `${cfg.endpoint}/api/generate`;
+
+  const body = {
+    model: cfg.model,
+    system: persona.systemPrompt,
+    prompt: query,
+    stream: false,
+    options: {
+      temperature: cfg.temp + (persona.id === 'casper' ? 0.1 : persona.id === 'balthasar' ? 0 : -0.1),
+      num_predict: cfg.maxTokens
+    }
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const data = await res.json();
+    const text = data.response || '';
+
+    displayResponse(persona, text);
+    return extractVote(text, persona.name);
+  } catch (err) {
+    const errText = `[CONNECTION ERROR]\n${err.message}\n\nCheck:\n1. Ollama running at ${cfg.endpoint}\n2. Model "${cfg.model}" is pulled\n3. CORS settings (use: OLLAMA_ORIGINS=* ollama serve)`;
+    displayResponse(persona, errText, true);
+    return null;
+  }
+}
+
+function displayResponse(persona, text, isError = false) {
+  document.getElementById(persona.loadingId).classList.remove('active');
+  const el = document.getElementById(persona.responseId);
+
+  // Format text
+  let formatted = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Highlight vote line
+  const voteRegex = /(CASPER VOTE:|BALTHASAR VOTE:|MELCHIOR VOTE:)\s*(APPROVED|REJECTED|CONDITIONAL)/gi;
+  formatted = formatted.replace(voteRegex, (match, label, vote) => {
+    const color = vote.toUpperCase() === 'APPROVED' ? '#00ff41' : vote.toUpperCase() === 'REJECTED' ? '#ff2020' : '#ffb300';
+    return `<strong style="color:${color};text-shadow:0 0 8px ${color}">${label} ${vote.toUpperCase()}</strong>`;
+  });
+
+  // Code blocks
+  formatted = formatted.replace(/```[\s\S]*?```/g, m => `<pre>${m.replace(/```/g, '')}</pre>`);
+
+  // Paragraphs
+  const lines = formatted.split('\n');
+  let html = '';
+  for (const line of lines) {
+    if (line.trim() === '') {
+      html += '<hr class="response-divider">';
+    } else {
+      html += `<div class="response-paragraph">${line}</div>`;
+    }
+  }
+
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
+
+  // Extract and show vote badge
+  const vote = extractVote(text, persona.name);
+  const badge = document.getElementById(persona.voteBadgeId);
+  if (vote) {
+    badge.textContent = vote;
+    badge.classList.add('visible');
+    // Update vote indicator
+    const vi = document.getElementById(persona.viId);
+    if (vote === 'APPROVED') {
+      vi.className = 'vote-indicator yes';
+      vi.textContent = '✓';
+    } else if (vote === 'REJECTED') {
+      vi.className = 'vote-indicator no';
+      vi.textContent = '✗';
+    } else {
+      vi.className = 'vote-indicator pending';
+      vi.textContent = '~';
+    }
+  } else if (isError) {
+    badge.textContent = 'ERR';
+    badge.classList.add('visible');
+  }
+}
+
+function extractVote(text, name) {
+  const regex = new RegExp(`${name}\\s+VOTE:\\s*(APPROVED|REJECTED|CONDITIONAL)`, 'i');
+  const m = text.match(regex);
+  if (m) return m[1].toUpperCase();
+  // Fallback: generic patterns
+  if (/\bAPPROVED\b/i.test(text)) return 'APPROVED';
+  if (/\bREJECTED\b/i.test(text)) return 'REJECTED';
+  if (/\bCONDITIONAL\b/i.test(text)) return 'CONDITIONAL';
+  return null;
+}
+
+function determineVerdict(votes) {
+  const approved = votes.filter(v => v === 'APPROVED').length;
+  const rejected = votes.filter(v => v === 'REJECTED').length;
+  const conditional = votes.filter(v => v === 'CONDITIONAL').length;
+  const errors = votes.filter(v => v === null).length;
+
+  let verdict, cls, consensus;
+
+  if (errors === 3) {
+    verdict = '[ CONNECTION FAILURE — ALL UNITS OFFLINE ]';
+    cls = 'rejected';
+    consensus = 'ERROR';
+  } else if (approved >= 2) {
+    verdict = `[ APPROVED — ${approved}/3 UNITS CONCUR ]`;
+    cls = 'approved';
+    consensus = `${approved}/3 APPROVED`;
+  } else if (rejected >= 2) {
+    verdict = `[ REJECTED — ${rejected}/3 UNITS OPPOSE ]`;
+    cls = 'rejected';
+    consensus = `${rejected}/3 REJECTED`;
+  } else if (conditional >= 2) {
+    verdict = `[ CONDITIONAL — ${conditional}/3 UNITS REQUIRE CONDITIONS ]`;
+    cls = 'partial';
+    consensus = `CONDITIONAL`;
+  } else {
+    const counts = `APR:${approved} REJ:${rejected} CON:${conditional}`;
+    verdict = `[ SPLIT DECISION — NO CONSENSUS — ${counts} ]`;
+    cls = 'partial';
+    consensus = 'SPLIT';
+  }
+
+  setVerdict(verdict, cls);
+  document.getElementById('status-consensus').textContent = consensus;
+}
+
+function setVerdict(text, cls) {
+  const el = document.getElementById('verdict-display');
+  el.textContent = text;
+  el.className = `verdict-display ${cls || ''}`;
+}
+
+// Init
+document.getElementById('model-display').textContent = `MODEL: ${cfg.model}`;
+</script>
+</body>
+</html>
